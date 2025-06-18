@@ -1,3 +1,29 @@
+# 🔐 Περιβάλλον και ευαίσθητα δεδομένα
 .env
+*.env
+
+# 🧠 Μοντέλα & Scalers
+models/
+!models/.gitkeep
+
+# 📊 Δεδομένα Training & Raw
+data/
+!data/.gitkeep
+
+# 🤖 Προβλέψεις Runtime
+predictions/
+!predictions/.gitkeep
+
+# ⚙️ Python cache & compiled files
 __pycache__/
-*.pyc
+*.py[cod]
+*.so
+
+# 🧪 Test artifacts
+*.log
+*.tmp
+
+# 📦 Virtualenvs
+.venv/
+env/
+venv/
