@@ -1,7 +1,7 @@
-# utils/fetch_ohlcv.py
 from utils.fetch_binance import fetch_ohlcv_binance, save_ohlcv_to_csv as save_binance
 from utils.fetch_kraken import fetch_ohlcv_kraken, save_ohlcv_to_csv as save_kraken
 import ccxt
+
 
 def fetch_and_save_ohlcv(exchange: str, symbol: str, timeframe: str, start_date: str):
     """
@@ -17,6 +17,7 @@ def fetch_and_save_ohlcv(exchange: str, symbol: str, timeframe: str, start_date:
         save_kraken(df, symbol, timeframe)
     else:
         raise ValueError(f"Unsupported exchange: {exchange}")
+
 
 if __name__ == "__main__":
     # Example usage

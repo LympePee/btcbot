@@ -1,4 +1,3 @@
-# utils/fetch_binance.py
 import ccxt
 import pandas as pd
 import os
@@ -7,11 +6,13 @@ from datetime import datetime
 
 binance = ccxt.binance({'enableRateLimit': True})
 
+
 def fetch_ohlcv_binance(symbol: str, timeframe: str, since: int, limit: int = 1000) -> pd.DataFrame:
     """
     Fetch historical OHLCV data from Binance.
     """
     all_data = []
+
     while since < binance.milliseconds():
         try:
             data = binance.fetch_ohlcv(symbol, timeframe, since=since, limit=limit)
@@ -25,8 +26,13 @@ def fetch_ohlcv_binance(symbol: str, timeframe: str, since: int, limit: int = 10
             break
 
     df = pd.DataFrame(all_data, columns=["timestamp", "open", "high", "low", "close", "volume"])
+
+    # ✅ Κρατάμε timestamp για indexing
+    # ✅ Προαιρετικά προσθέτουμε readable datetime
     df["datetime"] = pd.to_datetime(df["timestamp"], unit="ms")
+
     return df
+
 
 def save_ohlcv_to_csv(df: pd.DataFrame, symbol: str, timeframe: str):
     symbol_clean = symbol.replace("/", "")
@@ -35,6 +41,7 @@ def save_ohlcv_to_csv(df: pd.DataFrame, symbol: str, timeframe: str):
     filename = f"{folder}{timeframe}.csv"
     df.to_csv(filename, index=False)
     print(f"✅ Saved {len(df)} rows to {filename}")
+
 
 if __name__ == "__main__":
     symbol = "BTC/USDC"

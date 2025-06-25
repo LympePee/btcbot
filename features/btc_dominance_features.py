@@ -1,69 +1,93 @@
 # features/btc_dominance_features.py
 
+import os
 import pandas as pd
-import numpy as np
 from datetime import datetime, timedelta
-import requests
-from scipy.stats import linregress
+import ccxt
 
+# === Settings ===
+OUTPUT_CSV = "data/training_sets/btc_dominance_features.csv"
+TIMEFRAME = "1h"
+LOOKBACK_HOURS = 48
+SYMBOLS = ["BTC/USDC", "ETH/USDC", "BNB/USDC", "XRP/USDC"]
+DOMINANCE_SYMBOL = "BTC.D"
+USDC_DOMINANCE_SYMBOL = "USDC.D"
 
-def fetch_btc_dominance_history(days: int = 30) -> pd.DataFrame:
-    url = f"https://api.coingecko.com/api/v3/global"
-    data = []
-    
-    for i in range(days):
-        date = (datetime.utcnow() - timedelta(days=i)).strftime("%d-%m-%Y")
-        resp = requests.get(url)
-        if resp.status_code == 200:
-            try:
-                btc_dom = resp.json()["data"]["market_cap_percentage"]["btc"]
-                timestamp = datetime.utcnow() - timedelta(days=i)
-                data.append([timestamp, btc_dom])
-            except:
-                continue
-        else:
-            break
-
-    df = pd.DataFrame(data, columns=["datetime", "btc_dominance"])
-    df.sort_values("datetime", inplace=True)
-    df.reset_index(drop=True, inplace=True)
+# === Helper: fetch ohlcv from Binance ===
+def fetch_ohlcv(symbol, since_ms):
+    exchange = ccxt.binance()
+    ohlcv = exchange.fetch_ohlcv(symbol, timeframe=TIMEFRAME, since=since_ms)
+    df = pd.DataFrame(ohlcv, columns=["timestamp", "open", "high", "low", "close", "volume"])
+    df["timestamp"] = pd.to_datetime(df["timestamp"], unit="ms")
     return df
 
+# === Main Fetch Logic ===
+now = datetime.utcnow()
+since = int((now - timedelta(hours=LOOKBACK_HOURS)).timestamp() * 1000)
 
-def calculate_slope(series: pd.Series) -> float:
-    x = np.arange(len(series))
-    y = series.values
-    slope, _, _, _, _ = linregress(x, y)
-    return slope
+# Fetch BTC Dominance
+btc_d = fetch_ohlcv(DOMINANCE_SYMBOL, since)
+btc_d.set_index("timestamp", inplace=True)
+btc_d = btc_d.resample("1h").last()
 
+# Feature 1: BTC Dominance Change (4h)
+btc_d["btc_dominance_change_4h"] = btc_d["close"].pct_change(periods=4)
 
-def resample_and_generate_features(df: pd.DataFrame) -> dict:
-    features = {}
+# Feature 2-3: Price Changes for BTC & ETH
+btc = fetch_ohlcv("BTC/USDC", since).set_index("timestamp").resample("1h").last()
+eth = fetch_ohlcv("ETH/USDC", since).set_index("timestamp").resample("1h").last()
+btc["btc_price_change_4h"] = btc["close"].pct_change(periods=4)
+eth["eth_price_change_4h"] = eth["close"].pct_change(periods=4)
 
-    for tf, rule in {
-        "30m": "30T",
-        "1h": "1H",
-        "4h": "4H"
-    }.items():
-        resampled = df.set_index("datetime").resample(rule).mean().dropna()
-        resampled["slope"] = resampled["btc_dominance"].rolling(5).apply(calculate_slope, raw=False)
-        resampled["volatility"] = resampled["btc_dominance"].rolling(10).std()
+# Feature 4: Alt average return
+altcoins = ["ETH/USDC", "BNB/USDC", "XRP/USDC"]
+alt_df = pd.DataFrame()
 
-        latest = resampled.iloc[-1]
-        features[f"btc_dom_{tf}"] = round(latest["btc_dominance"], 2)
-        features[f"btc_dom_slope_{tf}"] = round(latest["slope"], 5)
-        features[f"btc_dom_volatility_{tf}"] = round(latest["volatility"], 5)
+for symbol in altcoins:
+    alt = fetch_ohlcv(symbol, since).set_index("timestamp").resample("1h").last()
+    alt[f"{symbol}_return"] = alt["close"].pct_change(periods=4)
+    alt_df = pd.concat([alt_df, alt[[f"{symbol}_return"]]], axis=1)
 
-    return features
+alt_df["alt_avg_return_4h"] = alt_df.mean(axis=1)
 
+# Feature 5: Market Breadth (1h)
+market_breadth = (alt_df > 0).sum(axis=1) / len(altcoins)
+market_breadth = market_breadth.rename("market_breadth_1h")
 
-def generate_btc_dominance_features(days: int = 30) -> dict:
-    df = fetch_btc_dominance_history(days=days)
-    return resample_and_generate_features(df)
+# Feature 6: Correlation BTC vs ETH/BNB/XRP
+cor_df = pd.concat([
+    btc["close"].pct_change(),
+    fetch_ohlcv("BNB/USDC", since).set_index("timestamp")["close"].pct_change(),
+    fetch_ohlcv("XRP/USDC", since).set_index("timestamp")["close"].pct_change(),
+    eth["close"].pct_change()
+], axis=1)
 
+cor_df.columns = ["btc", "bnb", "xrp", "eth"]
+correlation = cor_df.rolling(window=4).corr().loc[:, "btc"].drop(columns="btc")
+correlation["correlation_btc_vs_eth_bnb_xrp"] = correlation.mean(axis=1)
 
-if __name__ == "__main__":
-    features = generate_btc_dominance_features()
-    print("✅ BTC Dominance Features:")
-    for k, v in features.items():
-        print(f"{k}: {v}")
+# Feature 7: BTC Volume Dominance
+btc_vol = btc["volume"]
+total_vol = sum([fetch_ohlcv(s, since).set_index("timestamp")["volume"] for s in SYMBOLS])
+btc_volume_dominance = (btc_vol / total_vol).rename("btc_volume_dominance")
+
+# Feature 8: USDC Dominance Change
+usdc_d = fetch_ohlcv(USDC_DOMINANCE_SYMBOL, since).set_index("timestamp").resample("1h").last()
+usdc_d["usdc_d_change"] = usdc_d["close"].pct_change(periods=4)
+
+# === Combine all features ===
+final = pd.concat([
+    btc_d["btc_dominance_change_4h"],
+    btc["btc_price_change_4h"],
+    eth["eth_price_change_4h"],
+    alt_df["alt_avg_return_4h"],
+    market_breadth,
+    correlation["correlation_btc_vs_eth_bnb_xrp"],
+    btc_volume_dominance,
+    usdc_d["usdc_d_change"]
+], axis=1).dropna()
+
+# === Save to CSV ===
+os.makedirs(os.path.dirname(OUTPUT_CSV), exist_ok=True)
+final.to_csv(OUTPUT_CSV)
+print(f"✅ BTC Dominance features saved to {OUTPUT_CSV}")
