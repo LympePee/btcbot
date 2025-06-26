@@ -6,7 +6,7 @@ import numpy as np
 from datetime import datetime, timedelta
 from ta.trend import CCIIndicator
 import ta.momentum
-from utils.fetch_binance import fetch_ohlcv_binance
+from btcbot.utils.fetch_binance import fetch_ohlcv_binance
 
 def calculate_hma(series, period):
     half = int(period / 2)

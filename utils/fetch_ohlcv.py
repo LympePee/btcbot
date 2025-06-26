@@ -1,5 +1,5 @@
-from utils.fetch_binance import fetch_ohlcv_binance, save_ohlcv_to_csv as save_binance
-from utils.fetch_kraken import fetch_ohlcv_kraken, save_ohlcv_to_csv as save_kraken
+from btcbot.utils.fetch_binance import fetch_ohlcv_binance, save_ohlcv_to_csv as save_binance
+from btcbot.utils.fetch_kraken import fetch_ohlcv_kraken, save_ohlcv_to_csv as save_kraken
 import ccxt
 
 

@@ -5,11 +5,12 @@ from btcbot.utils.fetch_binance import fetch_ohlcv_binance  # ✅ Absolute impor
 
 def fetch_binance_ohlcv(symbol="BTC/USDC", timeframe="1h", since=1483228800000):
     df = fetch_ohlcv_binance(symbol, timeframe, since)
+
+    # ✅ Καθαρισμός συμβόλου για το όνομα του φακέλου
+    symbol_clean = symbol.replace("/", "")
     
-    # Προαιρετικά μπορείς να ορίσεις entry_price
-    # df["entry_price"] = df["close"]
-    
-    out_dir = "btcbot/data/historical/binance/BTCUSDC"
+    # ✅ Δυναμική διαδρομή αποθήκευσης
+    out_dir = f"btcbot/data/historical/binance/{symbol_clean}"
     os.makedirs(out_dir, exist_ok=True)
     out_path = os.path.join(out_dir, f"{timeframe}.csv")
     

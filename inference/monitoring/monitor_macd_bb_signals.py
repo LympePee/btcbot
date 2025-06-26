@@ -2,7 +2,7 @@ import os
 import pandas as pd
 from datetime import datetime, timedelta
 
-from utils.fetch_binance import fetch_ohlcv_binance
+from btcbot.utils.fetch_binance import fetch_ohlcv_binance
 
 PREDICTIONS_CSV = "predictions/macd_bb_predictions.csv"
 LABELED_CSV = "data/training_sets/macd_bb_labeled_predictions.csv"

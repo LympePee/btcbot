@@ -5,7 +5,7 @@ import pandas as pd
 import numpy as np
 from datetime import datetime, timedelta
 import ta
-from utils.fetch_binance import fetch_ohlcv_binance
+from btcbot.utils.fetch_binance import fetch_ohlcv_binance
 
 def apply_macd_bb_features(df):
     # === MACD ===

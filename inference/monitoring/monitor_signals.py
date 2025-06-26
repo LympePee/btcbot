@@ -6,7 +6,7 @@ import numpy as np
 import joblib
 from datetime import datetime, timedelta
 
-from utils.fetch_binance import fetch_ohlcv_binance
+from btcbot.utils.fetch_binance import fetch_ohlcv_binance
 from features.hull_features import apply_hull_features
 
 # === Config ===

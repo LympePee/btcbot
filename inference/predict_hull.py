@@ -5,7 +5,7 @@ import pandas as pd
 import numpy as np
 from datetime import datetime, timedelta
 from joblib import load
-from utils.fetch_binance import fetch_ohlcv_binance
+from btcbot.utils.fetch_binance import fetch_ohlcv_binance
 from ta.trend import CCIIndicator
 from ta.momentum import RSIIndicator
 
