@@ -1,0 +1,35 @@
+# 🔐 Περιβάλλον και ευαίσθητα δεδομένα
+.env
+*.env
+
+# 🧠 Μοντέλα & Scalers
+models/
+!models/.gitkeep
+
+# 📊 Δεδομένα Training & Raw
+data/
+!data/.gitkeep
+
+# 🤖 Προβλέψεις Runtime
+predictions/
+!predictions/.gitkeep
+
+# 📈 Analysis reports, charts, logs
+analysis/
+!analysis/.gitkeep
+
+# JSONL αρχεία (π.χ. candlestick_dpre)
+*.jsonl
+
+# ⚙️ Python cache & compiled files
+__pycache__/
+*.py[cod]
+*.so
+
+# VSCode, system junk
+.vscode/
+.DS_Store
+.venv/
+models/
+data/
+predictions/
